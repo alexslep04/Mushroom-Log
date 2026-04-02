@@ -1,0 +1,98 @@
+class JournalEntry
+    id
+    notes
+    photos
+    locationEnabled
+    speciesId
+
+class JournalRepository
+    function save(entry)
+    function getById(entryId)
+
+class DraftRepository
+    function saveDraft(entry)
+    function getDraft(entryId)
+
+class Validator
+    function validate(entry) -> Boolean
+
+interface Command
+    function execute()
+    function undo()
+
+class UpdateNotesCommand implements Command
+    entry
+    newNotes
+    oldNotes
+
+    function execute()
+        oldNotes = entry.notes
+        entry.notes = newNotes
+
+    function undo()
+        entry.notes = oldNotes
+
+class AddPhotoCommand implements Command
+    entry
+    photo
+
+    function execute()
+        entry.photos.add(photo)
+
+    function undo()
+        entry.photos.remove(photo)
+
+class RemovePhotoCommand implements Command
+    entry
+    photo
+
+    function execute()
+        entry.photos.remove(photo)
+
+    function undo()
+        entry.photos.add(photo)
+
+class ToggleLocationCommand implements Command
+    entry
+    oldValue
+
+    function execute()
+        oldValue = entry.locationEnabled
+        entry.locationEnabled = not entry.locationEnabled
+
+    function undo()
+        entry.locationEnabled = oldValue
+
+class SaveEntryCommand implements Command
+    entry
+    repository
+    draftRepository
+    validator
+    networkService
+
+    function execute()
+        if not validator.validate(entry)
+            print("Invalid input")
+            return
+
+        if networkService.isOnline()
+            repository.save(entry)
+            print("Changes saved")
+        else
+            draftRepository.saveDraft(entry)
+            print("Offline: local draft saved, retry later")
+
+    function undo()
+        print("Save cannot easily be undone directly")
+
+class EntryEditorController
+    historyStack
+
+    function runCommand(command)
+        command.execute()
+        historyStack.push(command)
+
+    function undoLast()
+        if not historyStack.isEmpty()
+            command = historyStack.pop()
+            command.undo()

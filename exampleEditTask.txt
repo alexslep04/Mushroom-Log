@@ -1,0 +1,7 @@
+# Example usage
+entry = repository.getById(42)
+
+controller.runCommand(new UpdateNotesCommand(entry, "Found near oak tree"))
+controller.runCommand(new AddPhotoCommand(entry, "photo3.jpg"))
+controller.runCommand(new ToggleLocationCommand(entry))
+controller.runCommand(new SaveEntryCommand(entry, repository, draftRepository, validator, networkService))
