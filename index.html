@@ -209,17 +209,59 @@
     .match-name { font-weight: 700; }
     .match-prob { color: var(--success); font-weight: 700; }
     .kv { display: grid; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+
+    .page { display: none; }
+    .page.active { display: block; }
+    .collection-list { display: grid; gap: 12px; margin-top: 14px; }
+    .collection-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #141416;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .collection-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+    .collection-title { font-weight: 700; font-size: 1.02rem; }
+    .collection-meta { color: var(--muted); font-size: 0.85rem; }
+    .collection-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .collection-image {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #101012;
+      cursor: pointer;
+    }
+    .collection-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      background: #101012;
+    }
+
+    header .row.space-between { align-items: flex-start; }
+    header .row.space-between > .row:last-child { margin-left: auto; }
   </style>
 </head>
 <body>
   <main class="app">
     <header>
-      <div class="subtitle">Field observation</div>
-      <h1>Mushroom Log</h1>
-      <p>Minimal local page for recording a mushroom find, its location, and reference photos.</p>
+      <div class="row space-between">
+        <div>
+          <div class="subtitle">Field observation</div>
+          <h1>Mushroom Log</h1>
+          <p>Minimal local page for recording a mushroom find, its location, and reference photos.</p>
+        </div>
+        <div class="row">
+          <button id="collectionsBtn">Collections</button>
+        </div>
+      </div>
     </header>
 
-    <section class="card">
+    <section id="logPage" class="page active card">
       <div class="row">
         <span class="pill" id="entryMeta">Log #42 · Draft</span>
         <span class="pill" id="locationState">Location: not set</span>
@@ -227,6 +269,9 @@
 
       <div class="grid">
         <section class="group">
+          <label for="journalName">Journal Name</label>
+          <input id="journalName" type="text" placeholder="My Mushroom Journal" />
+
           <label for="dateField">Date</label>
           <input id="dateField" type="date" />
 
@@ -268,6 +313,20 @@
       <div class="status" id="status"></div>
       <p class="muted">Saved data stays in your browser using localStorage.</p>
     </section>
+
+    <section id="collectionsPage" class="page card">
+      <div class="row space-between">
+        <div>
+          <div class="subtitle">Saved entries</div>
+          <h1 style="margin: 0 0 8px; font-size: 1.7rem;">Collections</h1>
+          <p>View logs you already saved.</p>
+        </div>
+        <div class="row">
+          <button id="backToLogBtn">Back to Log</button>
+        </div>
+      </div>
+      <div id="collectionList" class="collection-list"></div>
+    </section>
   </main>
 
   <script>
@@ -276,6 +335,7 @@
     const state = {
       entry: {
         id: 42,
+        journalName: "My Mushroom Journal",
         date: new Date().toISOString().slice(0, 10),
         location: "",
         notes: "",
@@ -283,12 +343,14 @@
         locationEnabled: false,
         speciesId: "mushroom-001"
       },
-      analysis: { status: 'idle', error: '', suggestions: [] }
+      analysis: { status: 'idle', error: '', suggestions: [] },
+      collection: []
     };
 
     const $ = (id) => document.getElementById(id);
     const elements = {
       dateField: $("dateField"),
+      journalName: $("journalName"),
       locationField: $("locationField"),
       notes: $("notes"),
       photoInput: $("photoInput"),
@@ -302,7 +364,12 @@
       status: $("status"),
       entryMeta: $("entryMeta"),
       analysisState: $("analysisState"),
-      matches: $("matches")
+      matches: $("matches"),
+      collectionsBtn: $("collectionsBtn"),
+      backToLogBtn: $("backToLogBtn"),
+      logPage: $("logPage"),
+      collectionsPage: $("collectionsPage"),
+      collectionList: $("collectionList")
     };
 
     class Command { execute() {} undo() {} }
@@ -353,6 +420,102 @@
       elements.status.style.color = kind === "error" ? "#efb0b0" : "#f2f2f2";
     }
 
+    function getSavedCollection() {
+      try {
+        return JSON.parse(localStorage.getItem('mushroom-log-collection') || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function saveCollection(collection) {
+      localStorage.setItem('mushroom-log-collection', JSON.stringify(collection));
+    }
+
+    function navigateTo(view) {
+      location.hash = view === 'collections' ? '#collections' : '#log';
+      renderPage();
+    }
+
+    function renderPage() {
+      const isCollections = location.hash === '#collections';
+      elements.logPage.classList.toggle('active', !isCollections);
+      elements.collectionsPage.classList.toggle('active', isCollections);
+      if (isCollections) renderCollections();
+    }
+
+    function renderCollections() {
+      const collection = getSavedCollection();
+      elements.collectionList.innerHTML = '';
+      if (collection.length === 0) {
+        elements.collectionList.innerHTML = '<p class="muted">No saved logs yet.</p>';
+        return;
+      }
+
+      collection.slice().reverse().forEach((entry) => {
+        const card = document.createElement('div');
+        card.className = 'collection-card';
+        const title = entry.journalName || 'Untitled journal';
+        const topMushroom = entry.analysis?.suggestions?.[0]?.name || 'Unknown';
+        const photo = entry.photos?.[0];
+        const imageHtml = photo?.dataUrl
+          ? `<div class="collection-image" data-open="${entry.savedId}"><img src="${photo.dataUrl}" alt="${title}"></div>`
+          : `<div class="collection-image" data-open="${entry.savedId}" style="display:flex; align-items:center; justify-content:center; color: var(--muted);">No image</div>`;
+
+        card.innerHTML = `
+          ${imageHtml}
+          <div class="collection-top">
+            <div>
+              <div class="collection-title">${title}</div>
+              <div class="collection-meta">${entry.date || 'No date'}</div>
+            </div>
+          </div>
+          <div class="collection-meta">Top mushroom: <strong style="color: var(--text);">${topMushroom}</strong></div>
+        `;
+        card.querySelector('[data-open]').addEventListener('click', () => {
+          loadSavedEntry(entry.savedId);
+          navigateTo('log');
+        });
+        elements.collectionList.appendChild(card);
+      });
+    }
+
+    function suggestionMarkup(suggestion, index) {
+      const probability = typeof suggestion.probability === 'number' ? `${Math.round(suggestion.probability * 100)}%` : '—';
+      const commonNames = suggestion.details?.common_names;
+      const taxonomy = suggestion.details?.taxonomy;
+      const edibility = suggestion.details?.edibility?.value || suggestion.details?.edibility || 'Unknown';
+      const imageUrl = suggestion.similar_images?.[0]?.url || suggestion.similar_images?.[0]?.url_small || '';
+
+      return `
+        <div class="match">
+          <div class="match-top">
+            <div>
+              <div class="match-name">${index + 1}. ${suggestion.name || 'Unknown'}</div>
+              <div class="muted">${commonNames?.en || commonNames?.[0] || 'No common names provided'}</div>
+            </div>
+            <div class="match-prob">${probability}</div>
+          </div>
+          <div class="kv"><strong style="color: var(--text);">Taxonomy</strong><span>${taxonomy?.family || taxonomy?.genus || taxonomy?.order || 'Not provided'}</span></div>
+          <div class="kv"><strong style="color: var(--text);">Edibility</strong><span>${edibility}</span></div>
+          <div class="kv"><strong style="color: var(--text);">Similar Images</strong><span>${suggestion.similar_images?.length || 0}</span></div>
+          ${imageUrl ? `<div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; background: #101012;"><img src="${imageUrl}" alt="${suggestion.name || 'Mushroom match'}" style="width: 100%; height: 100%; object-fit: contain; display: block; background: #101012;"></div>` : ''}
+        </div>
+      `;
+    }
+
+    function loadSavedEntry(savedId) {
+      const collection = getSavedCollection();
+      const found = collection.find((entry) => entry.savedId === savedId);
+      if (!found) return;
+      state.entry = JSON.parse(JSON.stringify({ journalName: 'My Mushroom Journal', ...found }));
+      controller.entry = state.entry;
+      state.analysis = JSON.parse(JSON.stringify(found.analysis || { status: 'idle', error: '', suggestions: [] }));
+      render();
+      renderAnalysis();
+      setStatus(`Loaded ${state.entry.journalName || 'saved log'}.`);
+    }
+
     function queuePhotoForAnalysis(photo) {
       photo.analysisState = "queued";
       photo.analysisLabel = "Queued for identification";
@@ -377,29 +540,10 @@
 
       elements.analysisState.textContent = 'Top matches from the API:';
       elements.matches.innerHTML = '';
-      state.analysis.suggestions.slice(0, 5).forEach((suggestion, index) => {
-        const card = document.createElement('div');
-        card.className = 'match';
-        const probability = typeof suggestion.probability === 'number' ? `${Math.round(suggestion.probability * 100)}%` : '—';
-        const commonNames = suggestion.details?.common_names;
-        const taxonomy = suggestion.details?.taxonomy;
-        const edibility = suggestion.details?.edibility?.value || suggestion.details?.edibility || 'Unknown';
-        const imageUrl = suggestion.similar_images?.[0]?.url_small || suggestion.similar_images?.[0]?.url || '';
-
-        card.innerHTML = `
-          <div class="match-top">
-            <div>
-              <div class="match-name">${index + 1}. ${suggestion.name || 'Unknown'}</div>
-              <div class="muted">${commonNames?.en || commonNames?.[0] || 'No common names provided'}</div>
-            </div>
-            <div class="match-prob">${probability}</div>
-          </div>
-          <div class="kv"><strong style="color: var(--text);">Taxonomy</strong><span>${taxonomy?.family || taxonomy?.genus || taxonomy?.order || 'Not provided'}</span></div>
-          <div class="kv"><strong style="color: var(--text);">Edibility</strong><span>${edibility}</span></div>
-          <div class="kv"><strong style="color: var(--text);">Similar Images</strong><span>${suggestion.similar_images?.length || 0}</span></div>
-          ${imageUrl ? `<img src="${imageUrl}" alt="${suggestion.name || 'Mushroom match'}" style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border);">` : ''}
-        `;
-        elements.matches.appendChild(card);
+      state.analysis.suggestions.slice(0, 3).forEach((suggestion, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = suggestionMarkup(suggestion, index);
+        elements.matches.appendChild(wrapper.firstElementChild);
       });
     }
 
@@ -422,15 +566,15 @@
           if (!response.ok) throw new Error(data.error || 'API request failed');
           return data;
         })
-        .then((data) => {
-          const suggestions = data?.result?.classification?.suggestions || [];
-          state.analysis.status = 'done';
-          state.analysis.suggestions = suggestions;
-          state.analysis.error = '';
-          state.entry.photos.forEach((photo) => { photo.analysisState = 'done'; photo.analysisLabel = 'Analyzed'; });
-          renderAnalysis();
-          setStatus(`Analyzed ${images.length} photo(s).`);
-        })
+      .then((data) => {
+        const suggestions = data?.result?.classification?.suggestions || [];
+        state.analysis.status = 'done';
+        state.analysis.suggestions = suggestions.slice(0, 3);
+        state.analysis.error = '';
+        state.entry.photos.forEach((photo) => { photo.analysisState = 'done'; photo.analysisLabel = 'Analyzed'; });
+        renderAnalysis();
+        setStatus(`Analyzed ${images.length} photo(s).`);
+      })
         .catch((error) => {
           state.analysis.status = 'error';
           state.analysis.error = error.message;
@@ -441,12 +585,13 @@
     }
 
     function render() {
+      elements.journalName.value = state.entry.journalName;
       elements.dateField.value = state.entry.date;
       elements.locationField.value = state.entry.location;
       elements.notes.value = state.entry.notes;
       elements.locationToggle.checked = state.entry.locationEnabled;
       elements.locationState.textContent = `Location: ${state.entry.locationEnabled ? (state.entry.location || "captured") : "not set"}`;
-      elements.entryMeta.textContent = `Log #${state.entry.id} · ${(state.entry.notes || state.entry.photos.length) ? "In progress" : "Draft"}`;
+      elements.entryMeta.textContent = `${state.entry.journalName || 'Untitled journal'} · ${(state.entry.notes || state.entry.photos.length) ? "In progress" : "Draft"}`;
       elements.photoList.innerHTML = "";
 
       state.entry.photos.forEach((photo) => {
@@ -500,6 +645,11 @@
     elements.dateField.addEventListener("change", () => {
       state.entry.date = elements.dateField.value;
       setStatus("Date updated.");
+    });
+
+    elements.journalName.addEventListener("input", () => {
+      state.entry.journalName = elements.journalName.value.trim() || 'Untitled journal';
+      render();
     });
 
     elements.locationField.addEventListener("input", () => {
@@ -564,11 +714,27 @@
       }
       repository.save(state.entry);
       draftRepository.saveDraft(state.entry);
+      const savedId = state.entry.savedId || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const snapshot = JSON.parse(JSON.stringify({
+        ...state.entry,
+        analysis: state.analysis,
+        savedId,
+        savedAt: new Date().toISOString()
+      }));
+      state.collection = getSavedCollection();
+      const existingIndex = state.collection.findIndex((entry) => entry.savedId === savedId);
+      if (existingIndex >= 0) state.collection[existingIndex] = snapshot;
+      else state.collection.push(snapshot);
+      saveCollection(state.collection);
+      state.entry.savedId = savedId;
+      state.entry.savedAt = snapshot.savedAt;
       setStatus("Log saved locally.");
+      if (location.hash === '#collections') renderCollections();
     });
 
     elements.resetBtn.addEventListener("click", () => {
       state.entry.date = new Date().toISOString().slice(0, 10);
+      state.entry.journalName = 'My Mushroom Journal';
       state.entry.location = "";
       state.entry.notes = "";
       state.entry.photos = [];
@@ -580,15 +746,20 @@
       setStatus("Entry cleared.");
     });
 
+    elements.collectionsBtn.addEventListener('click', () => navigateTo('collections'));
+    elements.backToLogBtn.addEventListener('click', () => navigateTo('log'));
+    window.addEventListener('hashchange', renderPage);
+
     render();
     const existingDraft = draftRepository.getDraft(state.entry.id);
     if (existingDraft) {
-      state.entry = existingDraft;
+      state.entry = { journalName: 'My Mushroom Journal', ...existingDraft };
       controller.entry = state.entry;
       render();
       setStatus("Loaded saved draft.");
       if (state.entry.photos.length) requestAnalysis();
     }
+    renderPage();
   </script>
 </body>
 </html>
