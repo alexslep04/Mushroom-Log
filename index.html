@@ -193,6 +193,22 @@
       font-size: 0.75rem;
       color: var(--muted);
     }
+
+    .matches { display: grid; gap: 10px; }
+
+    .match {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #141416;
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .match-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .match-name { font-weight: 700; }
+    .match-prob { color: var(--success); font-weight: 700; }
+    .kv { display: grid; gap: 4px; font-size: 0.85rem; color: var(--muted); }
   </style>
 </head>
 <body>
@@ -230,12 +246,10 @@
           <ul id="photoList" class="photos"></ul>
 
           <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px;">
-            <label>Identification Card</label>
-            <div class="pill"><span>Common Name</span><span>Unknown</span></div>
-            <div class="pill"><span>Scientific Name</span><span>—</span></div>
-            <div class="pill"><span>Confidence</span><span>—</span></div>
-            <div class="pill"><span>Toxicity</span><span>Pending scan</span></div>
-            <p class="muted" style="margin-top: 8px;">Photos are queued here now. Later, an API can read the image and fill in the mushroom name automatically.</p>
+            <label>Top Matches</label>
+            <div id="analysisState" class="muted">Upload a photo to run identification.</div>
+            <div id="matches" class="matches" style="margin-top: 12px;"></div>
+            <p class="muted" style="margin-top: 8px;">The API key stays in your local .env file and the browser calls the local server proxy only.</p>
           </div>
         </section>
       </div>
@@ -268,7 +282,8 @@
         photos: [],
         locationEnabled: false,
         speciesId: "mushroom-001"
-      }
+      },
+      analysis: { status: 'idle', error: '', suggestions: [] }
     };
 
     const $ = (id) => document.getElementById(id);
@@ -285,7 +300,9 @@
       undoBtn: $("undoBtn"),
       resetBtn: $("resetBtn"),
       status: $("status"),
-      entryMeta: $("entryMeta")
+      entryMeta: $("entryMeta"),
+      analysisState: $("analysisState"),
+      matches: $("matches")
     };
 
     class Command { execute() {} undo() {} }
@@ -337,9 +354,90 @@
     }
 
     function queuePhotoForAnalysis(photo) {
-      // Placeholder for the future mushroom-identification API.
       photo.analysisState = "queued";
-      photo.analysisLabel = "Queued for future API analysis";
+      photo.analysisLabel = "Queued for identification";
+    }
+
+    function renderAnalysis() {
+      if (state.analysis.status === 'loading') {
+        elements.analysisState.textContent = 'Analyzing mushroom photos...';
+        elements.matches.innerHTML = '';
+        return;
+      }
+      if (state.analysis.status === 'error') {
+        elements.analysisState.textContent = `Analysis failed: ${state.analysis.error}`;
+        elements.matches.innerHTML = '';
+        return;
+      }
+      if (state.analysis.suggestions.length === 0) {
+        elements.analysisState.textContent = 'Upload a photo to run identification.';
+        elements.matches.innerHTML = '';
+        return;
+      }
+
+      elements.analysisState.textContent = 'Top matches from the API:';
+      elements.matches.innerHTML = '';
+      state.analysis.suggestions.slice(0, 5).forEach((suggestion, index) => {
+        const card = document.createElement('div');
+        card.className = 'match';
+        const probability = typeof suggestion.probability === 'number' ? `${Math.round(suggestion.probability * 100)}%` : '—';
+        const commonNames = suggestion.details?.common_names;
+        const taxonomy = suggestion.details?.taxonomy;
+        const edibility = suggestion.details?.edibility?.value || suggestion.details?.edibility || 'Unknown';
+        const imageUrl = suggestion.similar_images?.[0]?.url_small || suggestion.similar_images?.[0]?.url || '';
+
+        card.innerHTML = `
+          <div class="match-top">
+            <div>
+              <div class="match-name">${index + 1}. ${suggestion.name || 'Unknown'}</div>
+              <div class="muted">${commonNames?.en || commonNames?.[0] || 'No common names provided'}</div>
+            </div>
+            <div class="match-prob">${probability}</div>
+          </div>
+          <div class="kv"><strong style="color: var(--text);">Taxonomy</strong><span>${taxonomy?.family || taxonomy?.genus || taxonomy?.order || 'Not provided'}</span></div>
+          <div class="kv"><strong style="color: var(--text);">Edibility</strong><span>${edibility}</span></div>
+          <div class="kv"><strong style="color: var(--text);">Similar Images</strong><span>${suggestion.similar_images?.length || 0}</span></div>
+          ${imageUrl ? `<img src="${imageUrl}" alt="${suggestion.name || 'Mushroom match'}" style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border);">` : ''}
+        `;
+        elements.matches.appendChild(card);
+      });
+    }
+
+    function requestAnalysis() {
+      const images = state.entry.photos.map((photo) => photo.dataUrl).filter(Boolean);
+      if (images.length === 0) return;
+
+      state.analysis.status = 'loading';
+      state.analysis.error = '';
+      elements.analysisState.textContent = 'Analyzing mushroom photos...';
+      elements.matches.innerHTML = '';
+
+      fetch('/api/mushroom/identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images, datetime: state.entry.date, latitude: null, longitude: null, similar_images: true })
+      })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'API request failed');
+          return data;
+        })
+        .then((data) => {
+          const suggestions = data?.result?.classification?.suggestions || [];
+          state.analysis.status = 'done';
+          state.analysis.suggestions = suggestions;
+          state.analysis.error = '';
+          state.entry.photos.forEach((photo) => { photo.analysisState = 'done'; photo.analysisLabel = 'Analyzed'; });
+          renderAnalysis();
+          setStatus(`Analyzed ${images.length} photo(s).`);
+        })
+        .catch((error) => {
+          state.analysis.status = 'error';
+          state.analysis.error = error.message;
+          state.analysis.suggestions = [];
+          renderAnalysis();
+          setStatus(error.message, 'error');
+        });
     }
 
     function render() {
@@ -382,6 +480,12 @@
         removeBtn.onclick = () => {
           controller.runCommand(new RemovePhotoCommand(state.entry, photo));
           render();
+          if (state.entry.photos.length) {
+            requestAnalysis();
+          } else {
+            state.analysis = { status: 'idle', error: '', suggestions: [] };
+            renderAnalysis();
+          }
           setStatus(`Removed ${photo.name}.`);
         };
 
@@ -390,6 +494,7 @@
       });
 
       elements.undoBtn.disabled = controller.history.length === 0;
+      renderAnalysis();
     }
 
     elements.dateField.addEventListener("change", () => {
@@ -437,6 +542,7 @@
       elements.photoInput.value = "";
       render();
       setStatus(files.length === 1 ? `Added ${files[0].name}.` : `Added ${files.length} photos.`);
+      requestAnalysis();
     });
 
     elements.locationToggle.addEventListener("change", () => {
@@ -468,6 +574,7 @@
       state.entry.photos = [];
       state.entry.locationEnabled = false;
       controller.history = [];
+      state.analysis = { status: 'idle', error: '', suggestions: [] };
       localStorage.removeItem(`draft-entry-${state.entry.id}`);
       render();
       setStatus("Entry cleared.");
@@ -480,6 +587,7 @@
       controller.entry = state.entry;
       render();
       setStatus("Loaded saved draft.");
+      if (state.entry.photos.length) requestAnalysis();
     }
   </script>
 </body>
