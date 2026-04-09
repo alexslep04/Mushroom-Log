@@ -1,0 +1,486 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:,">
+  <title>Mushroom Log</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d0d0e;
+      --panel: #171718;
+      --panel-2: #202022;
+      --text: #f2f2f2;
+      --muted: #a8a8a8;
+      --border: #333336;
+      --soft: #1f1f21;
+      --danger: #efb0b0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #111112 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 16px 48px;
+    }
+
+    header { margin-bottom: 18px; }
+    h1 { margin: 0 0 8px; font-size: 2rem; letter-spacing: 0.02em; }
+    p { margin: 0; color: var(--muted); }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      margin-top: 18px;
+    }
+
+    .group {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel-2);
+      padding: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    input[type="text"], input[type="date"], textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 12px;
+      font: inherit;
+      background: #121214;
+      color: var(--text);
+    }
+
+    textarea { min-height: 118px; resize: vertical; }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .row.tight { margin-top: 10px; }
+
+    button {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+      background: var(--soft);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    button.primary {
+      background: #f5f5f5;
+      color: #111;
+      border-color: #f5f5f5;
+    }
+
+    button.danger {
+      background: #241a1a;
+      color: var(--danger);
+    }
+
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #141416;
+      padding: 10px 12px;
+      color: var(--text);
+      margin-bottom: 10px;
+      font-size: 0.92rem;
+    }
+
+    .photos {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .photo-item {
+      display: grid;
+      grid-template-columns: 72px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      background: #1a1a1c;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .thumb {
+      width: 72px;
+      height: 72px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #121214;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 6px;
+    }
+
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .photo-meta { display: grid; gap: 4px; }
+    .photo-name { font-weight: 700; }
+    .photo-status { color: var(--muted); font-size: 0.85rem; }
+
+    .status {
+      margin-top: 12px;
+      min-height: 1.4em;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .muted { color: var(--muted); }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="subtitle">Field observation</div>
+      <h1>Mushroom Log</h1>
+      <p>Minimal local page for recording a mushroom find, its location, and reference photos.</p>
+    </header>
+
+    <section class="card">
+      <div class="row">
+        <span class="pill" id="entryMeta">Log #42 · Draft</span>
+        <span class="pill" id="locationState">Location: not set</span>
+      </div>
+
+      <div class="grid">
+        <section class="group">
+          <label for="dateField">Date</label>
+          <input id="dateField" type="date" />
+
+          <label for="locationField" style="margin-top: 12px;">Location</label>
+          <input id="locationField" type="text" placeholder="Trail, park, campus, etc." />
+
+          <label for="notes" style="margin-top: 12px;">Observation Notes</label>
+          <textarea id="notes" placeholder="Cap color, stem shape, habitat, and anything else useful..."></textarea>
+        </section>
+
+        <section class="group">
+          <label for="photoInput">Photos</label>
+          <div class="row tight">
+            <input id="photoInput" type="file" accept="image/*" multiple hidden />
+            <button class="primary" id="addPhotoBtn">Add Photo</button>
+          </div>
+          <ul id="photoList" class="photos"></ul>
+
+          <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px;">
+            <label>Identification Card</label>
+            <div class="pill"><span>Common Name</span><span>Unknown</span></div>
+            <div class="pill"><span>Scientific Name</span><span>—</span></div>
+            <div class="pill"><span>Confidence</span><span>—</span></div>
+            <div class="pill"><span>Toxicity</span><span>Pending scan</span></div>
+            <p class="muted" style="margin-top: 8px;">Photos are queued here now. Later, an API can read the image and fill in the mushroom name automatically.</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="toggle">
+        <input id="locationToggle" type="checkbox" />
+        <label for="locationToggle" style="margin: 0; font-weight: 700;">Use current location</label>
+      </div>
+
+      <div class="row" style="margin-top: 14px;">
+        <button class="primary" id="saveBtn">Save Log</button>
+        <button id="undoBtn">Undo</button>
+        <button class="danger" id="resetBtn">Clear Entry</button>
+      </div>
+
+      <div class="status" id="status"></div>
+      <p class="muted">Saved data stays in your browser using localStorage.</p>
+    </section>
+  </main>
+
+  <script>
+    // AI-generated implementation note: this file was created with AI assistance.
+
+    const state = {
+      entry: {
+        id: 42,
+        date: new Date().toISOString().slice(0, 10),
+        location: "",
+        notes: "",
+        photos: [],
+        locationEnabled: false,
+        speciesId: "mushroom-001"
+      }
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const elements = {
+      dateField: $("dateField"),
+      locationField: $("locationField"),
+      notes: $("notes"),
+      photoInput: $("photoInput"),
+      addPhotoBtn: $("addPhotoBtn"),
+      photoList: $("photoList"),
+      locationToggle: $("locationToggle"),
+      locationState: $("locationState"),
+      saveBtn: $("saveBtn"),
+      undoBtn: $("undoBtn"),
+      resetBtn: $("resetBtn"),
+      status: $("status"),
+      entryMeta: $("entryMeta")
+    };
+
+    class Command { execute() {} undo() {} }
+    class UpdateNotesCommand extends Command {
+      constructor(entry, newNotes) { super(); this.entry = entry; this.newNotes = newNotes; this.oldNotes = entry.notes; }
+      execute() { this.entry.notes = this.newNotes; }
+      undo() { this.entry.notes = this.oldNotes; }
+    }
+    class AddPhotoCommand extends Command {
+      constructor(entry, photo) { super(); this.entry = entry; this.photo = photo; }
+      execute() { this.entry.photos.push(this.photo); }
+      undo() { this.entry.photos = this.entry.photos.filter((p) => p.id !== this.photo.id); }
+    }
+    class RemovePhotoCommand extends Command {
+      constructor(entry, photo) { super(); this.entry = entry; this.photo = photo; }
+      execute() { this.entry.photos = this.entry.photos.filter((p) => p.id !== this.photo.id); }
+      undo() { this.entry.photos.push(this.photo); }
+    }
+    class ToggleLocationCommand extends Command {
+      constructor(entry) { super(); this.entry = entry; this.oldValue = entry.locationEnabled; }
+      execute() { this.entry.locationEnabled = !this.oldValue; }
+      undo() { this.entry.locationEnabled = this.oldValue; }
+    }
+
+    class EntryEditorController {
+      constructor(entry) { this.entry = entry; this.history = []; }
+      runCommand(command) { command.execute(); this.history.push(command); }
+      undoLast() { const command = this.history.pop(); if (command) command.undo(); }
+    }
+
+    class JournalRepository {
+      save(entry) { localStorage.setItem(`journal-entry-${entry.id}`, JSON.stringify(entry)); }
+      getById(entryId) { const raw = localStorage.getItem(`journal-entry-${entryId}`); return raw ? JSON.parse(raw) : null; }
+    }
+    class DraftRepository {
+      saveDraft(entry) { localStorage.setItem(`draft-entry-${entry.id}`, JSON.stringify(entry)); }
+      getDraft(entryId) { const raw = localStorage.getItem(`draft-entry-${entryId}`); return raw ? JSON.parse(raw) : null; }
+    }
+    class Validator { validate(entry) { return entry.notes.trim().length > 0 || entry.photos.length > 0; } }
+
+    const controller = new EntryEditorController(state.entry);
+    const repository = new JournalRepository();
+    const draftRepository = new DraftRepository();
+    const validator = new Validator();
+
+    function setStatus(message, kind = "ok") {
+      elements.status.textContent = message;
+      elements.status.style.color = kind === "error" ? "#efb0b0" : "#f2f2f2";
+    }
+
+    function queuePhotoForAnalysis(photo) {
+      // Placeholder for the future mushroom-identification API.
+      photo.analysisState = "queued";
+      photo.analysisLabel = "Queued for future API analysis";
+    }
+
+    function render() {
+      elements.dateField.value = state.entry.date;
+      elements.locationField.value = state.entry.location;
+      elements.notes.value = state.entry.notes;
+      elements.locationToggle.checked = state.entry.locationEnabled;
+      elements.locationState.textContent = `Location: ${state.entry.locationEnabled ? (state.entry.location || "captured") : "not set"}`;
+      elements.entryMeta.textContent = `Log #${state.entry.id} · ${(state.entry.notes || state.entry.photos.length) ? "In progress" : "Draft"}`;
+      elements.photoList.innerHTML = "";
+
+      state.entry.photos.forEach((photo) => {
+        const li = document.createElement("li");
+        li.className = "photo-item";
+
+        const thumb = document.createElement("div");
+        thumb.className = "thumb";
+        if (photo.dataUrl) {
+          const img = document.createElement("img");
+          img.src = photo.dataUrl;
+          img.alt = photo.name;
+          thumb.appendChild(img);
+        } else {
+          thumb.textContent = "Image";
+        }
+
+        const meta = document.createElement("div");
+        meta.className = "photo-meta";
+        const name = document.createElement("div");
+        name.className = "photo-name";
+        name.textContent = photo.name;
+        const status = document.createElement("div");
+        status.className = "photo-status";
+        status.textContent = photo.analysisLabel || "Ready for API analysis";
+        meta.append(name, status);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "Remove";
+        removeBtn.className = "danger";
+        removeBtn.onclick = () => {
+          controller.runCommand(new RemovePhotoCommand(state.entry, photo));
+          render();
+          setStatus(`Removed ${photo.name}.`);
+        };
+
+        li.append(thumb, meta, removeBtn);
+        elements.photoList.appendChild(li);
+      });
+
+      elements.undoBtn.disabled = controller.history.length === 0;
+    }
+
+    elements.dateField.addEventListener("change", () => {
+      state.entry.date = elements.dateField.value;
+      setStatus("Date updated.");
+    });
+
+    elements.locationField.addEventListener("input", () => {
+      state.entry.location = elements.locationField.value;
+      setStatus("Location updated.");
+    });
+
+    elements.notes.addEventListener("input", () => {
+      controller.runCommand(new UpdateNotesCommand(state.entry, elements.notes.value));
+      render();
+    });
+
+    elements.addPhotoBtn.addEventListener("click", () => {
+      elements.photoInput.click();
+    });
+
+    elements.photoInput.addEventListener("change", async () => {
+      const files = Array.from(elements.photoInput.files || []);
+      if (files.length === 0) return;
+
+      for (const file of files) {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Unable to read file"));
+          reader.readAsDataURL(file);
+        });
+
+        const photo = {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          name: file.name,
+          dataUrl,
+          mimeType: file.type
+        };
+
+        queuePhotoForAnalysis(photo);
+        controller.runCommand(new AddPhotoCommand(state.entry, photo));
+      }
+
+      elements.photoInput.value = "";
+      render();
+      setStatus(files.length === 1 ? `Added ${files[0].name}.` : `Added ${files.length} photos.`);
+    });
+
+    elements.locationToggle.addEventListener("change", () => {
+      controller.runCommand(new ToggleLocationCommand(state.entry));
+      render();
+      setStatus(`Location tracking ${state.entry.locationEnabled ? "enabled" : "disabled"}.`);
+    });
+
+    elements.undoBtn.addEventListener("click", () => {
+      controller.undoLast();
+      render();
+      setStatus("Undid the last action.");
+    });
+
+    elements.saveBtn.addEventListener("click", () => {
+      if (!validator.validate(state.entry)) {
+        setStatus("Add notes or a photo before saving.", "error");
+        return;
+      }
+      repository.save(state.entry);
+      draftRepository.saveDraft(state.entry);
+      setStatus("Log saved locally.");
+    });
+
+    elements.resetBtn.addEventListener("click", () => {
+      state.entry.date = new Date().toISOString().slice(0, 10);
+      state.entry.location = "";
+      state.entry.notes = "";
+      state.entry.photos = [];
+      state.entry.locationEnabled = false;
+      controller.history = [];
+      localStorage.removeItem(`draft-entry-${state.entry.id}`);
+      render();
+      setStatus("Entry cleared.");
+    });
+
+    render();
+    const existingDraft = draftRepository.getDraft(state.entry.id);
+    if (existingDraft) {
+      state.entry = existingDraft;
+      controller.entry = state.entry;
+      render();
+      setStatus("Loaded saved draft.");
+    }
+  </script>
+</body>
+</html>
