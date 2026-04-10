@@ -1,251 +1,404 @@
-﻿<!DOCTYPE html>
+﻿<!--
+==================== AI LOG ====================
+LOG CONTEXT:
+- This demo was developed for the purposes of PM4.
+- Alex generated the initial version of this file using AI prompting.
+- Aniya edited the initial version with AI to increase accessibility.
+
+INITIAL AI GENERATION:
+- Alex used ChatGPT to generate the base application, including:
+  journal UI, photo upload system, command pattern logic, localStorage saving,
+  collections page, and API integration for mushroom identification.
+
+- Prompt summary (ChatGPT):
+  "Create a Mushroom Log web app with form inputs, photo uploads, undo functionality,
+   local storage persistence, collections view, and API-based classification results."
+
+ACCESSIBILITY IMPROVEMENTS:
+- Aniya edited the generated code using AI and manual edits to improve accessibility.
+
+- Prompt Summary (ChatGPT, Gemini):
+  "Edit the code to improve accessibility and to meet the 
+  10 Usability Heuristics while keeping functions the same."
+
+- Changes included:
+  - Increased color contrast between text, borders, and backgrounds
+  - Changed app to a lighter theme with more colors, like gray, green, red
+  - Improving spacing and layout to increase readability
+  - Making UI elements (buttons, inputs, and layout sections) more consistent and accessible
+
+AI USAGE DISCLOSURE:
+- AI was used to generate the initial implementation of the application.
+- AI was used to edit the initial implementation to meet accessibility requirements.
+- Manual edits were made to some spacing lines within the code, but majority was AI.
+- All changes were manually reviewed and adjusted for functionality.
+===============================================================
+-->
+
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:,">
   <title>Mushroom Log</title>
   <style>
+
     :root {
-      color-scheme: dark;
-      --bg: #0d0d0e;
-      --panel: #171718;
-      --panel-2: #202022;
-      --text: #f2f2f2;
-      --muted: #a8a8a8;
-      --border: #333336;
-      --soft: #1f1f21;
-      --danger: #efb0b0;
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #334155;
+      --border: #94a3b8;
+      --accent: #16a34a;
+      --accent-soft: #e8f5ee;
+      --danger: #dc2626;
+      --radius: 12px;
+      --shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      --font-base: 17px;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: linear-gradient(180deg, #111112 0%, var(--bg) 100%);
+      background-color: var(--bg);
       color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size: var(--font-base);
+      line-height: 1.6;
     }
 
     .app {
       max-width: 980px;
       margin: 0 auto;
-      padding: 28px 16px 48px;
+      padding: 40px 20px 70px;
     }
 
-    header { margin-bottom: 18px; }
-    h1 { margin: 0 0 8px; font-size: 2rem; letter-spacing: 0.02em; }
-    p { margin: 0; color: var(--muted); }
+    header {
+      margin-bottom: 26px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2.2rem;
+      letter-spacing: -0.02em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
 
     .card {
       background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 48px;
+      box-shadow: var(--shadow);
     }
 
     .grid {
       display: grid;
-      gap: 16px;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      margin-top: 18px;
+      gap: 22px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      margin-top: 22px;
     }
 
     .group {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: var(--panel-2);
-      padding: 14px;
+      background: #ffffff;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 26px;
     }
+
 
     label {
       display: block;
-      margin-bottom: 8px;
-      font-size: 0.9rem;
+      margin-bottom: 6px;
+      font-size: 1rem;
       font-weight: 700;
     }
 
-    input[type="text"], input[type="date"], textarea {
+
+    input[type="text"],
+    input[type="date"],
+    textarea {
       width: 100%;
-      border: 1px solid var(--border);
+      border: 2px solid var(--border);
+      background: #ffffff;
+      padding: 14px;
       border-radius: 10px;
-      padding: 11px 12px;
-      font: inherit;
-      background: #121214;
       color: var(--text);
+      font-size: 1rem;
+      transition: 0.15s ease;
+      outline: none;
     }
 
-    textarea { min-height: 118px; resize: vertical; }
+    input:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.25);
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
 
     .row {
       display: flex;
-      gap: 10px;
+      gap: 14px;
       flex-wrap: wrap;
     }
 
-    .row.tight { margin-top: 10px; }
+    .row.tight {
+      margin-top: 14px;
+    }
 
     button {
-      border: 1px solid var(--border);
+      border: 2px solid var(--border);
       border-radius: 10px;
-      padding: 10px 14px;
+      padding: 12px 16px;
       font: inherit;
+      font-size: 1rem;
       cursor: pointer;
-      background: var(--soft);
+      background: #ffffff;
       color: var(--text);
       font-weight: 700;
+      transition: 0.15s ease;
+    }
+
+    button:hover {
+      background: #f1f5f9;
+    }
+
+    button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.25);
     }
 
     button.primary {
-      background: #f5f5f5;
-      color: #111;
-      border-color: #f5f5f5;
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    button.primary:hover {
+      background: #15803d;
     }
 
     button.danger {
-      background: #241a1a;
+      background: #fff5f5;
       color: var(--danger);
+      border-color: #fecaca;
     }
 
-    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
     .pill {
       display: inline-flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #141416;
-      padding: 10px 12px;
-      color: var(--text);
-      margin-bottom: 10px;
-      font-size: 0.92rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 2px solid #bbf7d0;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.9rem;
     }
 
     .photos {
       list-style: none;
       padding: 0;
-      margin: 10px 0 0;
+      margin: 14px 0 0;
       display: grid;
-      gap: 10px;
+      gap: 14px;
     }
 
     .photo-item {
       display: grid;
-      grid-template-columns: 72px 1fr auto;
-      gap: 12px;
+      grid-template-columns: 80px 1fr auto;
+      gap: 14px;
       align-items: center;
-      background: #1a1a1c;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px;
+      background: #ffffff;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
     }
 
     .thumb {
-      width: 72px;
-      height: 72px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: #121214;
-      overflow: hidden;
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      background: #f1f5f9;
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--muted);
-      font-size: 0.75rem;
-      text-align: center;
-      padding: 6px;
+      font-size: 0.85rem;
     }
 
     .thumb img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      display: block;
     }
 
-    .photo-meta { display: grid; gap: 4px; }
-    .photo-name { font-weight: 700; }
-    .photo-status { color: var(--muted); font-size: 0.85rem; }
+    .photo-meta {
+      display: grid;
+      gap: 6px;
+    }
+
+    .photo-name {
+      font-weight: 800;
+      font-size: 1.05rem;
+    }
+
+    .photo-status {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
 
     .status {
-      margin-top: 12px;
-      min-height: 1.4em;
-      color: var(--text);
+      margin-top: 20px;
       font-weight: 700;
+      font-size: 1.05rem;
     }
-
-    .muted { color: var(--muted); }
 
     .toggle {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .status+p {
       margin-top: 12px;
     }
 
-    .subtitle {
-      margin-top: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-size: 0.75rem;
+    .muted {
+      color: #475569;
+      font-weight: 500;
+    }
+
+    .matches {
+      display: grid;
+      gap: 14px;
+    }
+
+    .match {
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .match-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .match-name {
+      font-weight: 800;
+      font-size: 1.05rem;
+    }
+
+    .match-prob {
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .kv {
+      display: grid;
+      gap: 6px;
+      font-size: 0.95rem;
       color: var(--muted);
     }
 
-    .matches { display: grid; gap: 10px; }
-
-    .match {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #141416;
-      padding: 12px;
-      display: grid;
-      gap: 8px;
+    .page {
+      display: none;
     }
 
-    .match-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-    .match-name { font-weight: 700; }
-    .match-prob { color: var(--success); font-weight: 700; }
-    .kv { display: grid; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+    .page.active {
+      display: block;
+    }
 
-    .page { display: none; }
-    .page.active { display: block; }
-    .collection-list { display: grid; gap: 12px; margin-top: 14px; }
+    .collection-list {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
     .collection-card {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #141416;
-      padding: 14px;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 16px;
       display: grid;
-      gap: 10px;
+      gap: 12px;
     }
-    .collection-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-    .collection-title { font-weight: 700; font-size: 1.02rem; }
-    .collection-meta { color: var(--muted); font-size: 0.85rem; }
-    .collection-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .collection-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+
+    .collection-title {
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+
+    .collection-meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .collection-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
     .collection-image {
       width: 100%;
       aspect-ratio: 16 / 9;
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
       overflow: hidden;
-      background: #101012;
+      background: #f1f5f9;
       cursor: pointer;
     }
+
     .collection-image img {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      display: block;
-      background: #101012;
     }
 
-    header .row.space-between { align-items: flex-start; }
-    header .row.space-between > .row:last-child { margin-left: auto; }
+    header .row.space-between {
+      align-items: flex-start;
+    }
+
+    header .row.space-between>.row:last-child {
+      margin-left: auto;
+    }
+
   </style>
 </head>
+
 <body>
   <main class="app">
     <header>
@@ -294,7 +447,8 @@
             <label>Top Matches</label>
             <div id="analysisState" class="muted">Upload a photo to run identification.</div>
             <div id="matches" class="matches" style="margin-top: 12px;"></div>
-            <p class="muted" style="margin-top: 8px;">The API key stays in your local .env file and the browser calls the local server proxy only.</p>
+            <p class="muted" style="margin-top: 8px;">The API key stays in your local .env file and the browser calls
+              the local server proxy only.</p>
           </div>
         </section>
       </div>
@@ -372,7 +526,7 @@
       collectionList: $("collectionList")
     };
 
-    class Command { execute() {} undo() {} }
+    class Command { execute() { } undo() { } }
     class UpdateNotesCommand extends Command {
       constructor(entry, newNotes) { super(); this.entry = entry; this.newNotes = newNotes; this.oldNotes = entry.notes; }
       execute() { this.entry.notes = this.newNotes; }
@@ -417,7 +571,12 @@
 
     function setStatus(message, kind = "ok") {
       elements.status.textContent = message;
-      elements.status.style.color = kind === "error" ? "#efb0b0" : "#f2f2f2";
+
+      if (kind === "error") {
+        elements.status.style.color = "#b91c1c"; // strong red
+      } else {
+        elements.status.style.color = "#0f172a"; // readable dark text
+      }
     }
 
     function getSavedCollection() {
@@ -566,15 +725,15 @@
           if (!response.ok) throw new Error(data.error || 'API request failed');
           return data;
         })
-      .then((data) => {
-        const suggestions = data?.result?.classification?.suggestions || [];
-        state.analysis.status = 'done';
-        state.analysis.suggestions = suggestions.slice(0, 3);
-        state.analysis.error = '';
-        state.entry.photos.forEach((photo) => { photo.analysisState = 'done'; photo.analysisLabel = 'Analyzed'; });
-        renderAnalysis();
-        setStatus(`Analyzed ${images.length} photo(s).`);
-      })
+        .then((data) => {
+          const suggestions = data?.result?.classification?.suggestions || [];
+          state.analysis.status = 'done';
+          state.analysis.suggestions = suggestions.slice(0, 3);
+          state.analysis.error = '';
+          state.entry.photos.forEach((photo) => { photo.analysisState = 'done'; photo.analysisLabel = 'Analyzed'; });
+          renderAnalysis();
+          setStatus(`Analyzed ${images.length} photo(s).`);
+        })
         .catch((error) => {
           state.analysis.status = 'error';
           state.analysis.error = error.message;
@@ -762,4 +921,5 @@
     renderPage();
   </script>
 </body>
+
 </html>

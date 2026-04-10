@@ -1,4 +1,26 @@
-﻿const http = require('http');
+﻿//
+// ==================== AI / IMPLEMENTATION LOG ====================
+//
+// This server file was initially created by Alex using AI generated code.
+//
+// INITIAL AI PROMPT (ChatGPT):
+// "Create a Node.js HTTP server that serves static files and includes an API proxy
+// endpoint (/api/mushroom/identify) which reads a .env file for API credentials,
+// forwards image data to a mushroom identification API, and returns the response."
+//
+// The generated server includes:
+// - Basic static file serving using Node's http/fs/path modules
+// - Custom .env loader without external dependencies
+// - JSON request parsing utility
+// - API proxy endpoint for mushroom identification requests
+//
+// =================================================================
+//
+// No major functional changes were made after generation, aside from minor
+// integration adjustments to match the frontend API format.
+// =================================================================
+
+const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
