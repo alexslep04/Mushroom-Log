@@ -46,19 +46,6 @@ AI USAGE DISCLOSURE:
   <style>
 
     :root {
-<<<<<<< HEAD
-      --bg: #f8fafc;
-      --panel: #ffffff;
-      --text: #0f172a;
-      --muted: #334155;
-      --border: #94a3b8;
-      --accent: #16a34a;
-      --accent-soft: #e8f5ee;
-      --danger: #dc2626;
-      --radius: 12px;
-      --shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-      --font-base: 17px;
-=======
       color-scheme: dark;
       --bg: #b9bdb3;
       --panel: #232b1a;
@@ -68,7 +55,6 @@ AI USAGE DISCLOSURE:
       --border: #4a5c38;
       --soft: #2e3d22;
       --danger: #efb0b0;
->>>>>>> 2bd9c3456c2f1603754356afd0c72fa4309e5e46
     }
 
     * {
@@ -458,9 +444,10 @@ AI USAGE DISCLOSURE:
           <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px;">
             <label>Top Matches</label>
             <div id="analysisState" class="muted">Upload a photo to run identification.</div>
+            <div id="analysisBanner" class="banner"></div>
+            <div id="selectedMatch" class="selected-card"></div>
             <div id="matches" class="matches" style="margin-top: 12px;"></div>
-            <p class="muted" style="margin-top: 8px;">The API key stays in your local .env file and the browser calls
-              the local server proxy only.</p>
+            <p class="muted" style="margin-top: 8px;">Configured for the Kindwise mushroom.id API through the local Node proxy. Keep your API key in .env only.</p>
           </div>
         </section>
       </div>
@@ -508,9 +495,12 @@ AI USAGE DISCLOSURE:
         notes: "",
         photos: [],
         locationEnabled: false,
-        speciesId: "mushroom-001"
+        latitude: null,
+        longitude: null,
+        speciesId: "mushroom-001",
+        selectedSuggestion: null
       },
-      analysis: { status: 'idle', error: '', suggestions: [] },
+      analysis: { status: 'idle', error: '', suggestions: [], selectedIndex: -1, selectedSuggestion: null, warning: '' },
       collection: []
     };
 
@@ -528,10 +518,12 @@ AI USAGE DISCLOSURE:
       saveBtn: $("saveBtn"),
       undoBtn: $("undoBtn"),
       resetBtn: $("resetBtn"),
-      exportBtn: $("exportBtn")
+      exportBtn: $("exportBtn"),
       status: $("status"),
       entryMeta: $("entryMeta"),
       analysisState: $("analysisState"),
+      analysisBanner: $("analysisBanner"),
+      selectedMatch: $("selectedMatch"),
       matches: $("matches"),
       collectionsBtn: $("collectionsBtn"),
       backToLogBtn: $("backToLogBtn"),
@@ -540,7 +532,7 @@ AI USAGE DISCLOSURE:
       collectionList: $("collectionList")
     };
 
-    class Command { execute() { } undo() { } }
+    class Command { execute() {} undo() {} }
     class UpdateNotesCommand extends Command {
       constructor(entry, newNotes) { super(); this.entry = entry; this.newNotes = newNotes; this.oldNotes = entry.notes; }
       execute() { this.entry.notes = this.newNotes; }
@@ -585,12 +577,7 @@ AI USAGE DISCLOSURE:
 
     function setStatus(message, kind = "ok") {
       elements.status.textContent = message;
-
-      if (kind === "error") {
-        elements.status.style.color = "#b91c1c"; // strong red
-      } else {
-        elements.status.style.color = "#0f172a"; // readable dark text
-      }
+      elements.status.style.color = kind === "error" ? "#efb0b0" : "#f2f2f2";
     }
 
     function getSavedCollection() {
@@ -617,6 +604,81 @@ AI USAGE DISCLOSURE:
       if (isCollections) renderCollections();
     }
 
+
+    const LOW_CONFIDENCE_THRESHOLD = 0.5;
+
+    function getDisplayCommonNames(commonNames) {
+      if (!commonNames) return 'No common names provided';
+      if (Array.isArray(commonNames)) return commonNames.join(', ');
+      if (Array.isArray(commonNames.en)) return commonNames.en.join(', ');
+      if (typeof commonNames.en === 'string') return commonNames.en;
+      const firstValue = Object.values(commonNames).find((value) => Array.isArray(value) ? value.length > 0 : Boolean(value));
+      if (Array.isArray(firstValue)) return firstValue.join(', ');
+      return String(firstValue || 'No common names provided');
+    }
+
+    function setSelectedSuggestion(index) {
+      const suggestions = state.analysis.suggestions || [];
+      const suggestion = suggestions[index] || null;
+      state.analysis.selectedIndex = suggestion ? index : -1;
+      state.analysis.selectedSuggestion = suggestion;
+      state.entry.selectedSuggestion = suggestion
+        ? {
+            id: suggestion.id || null,
+            name: suggestion.name || 'Unknown',
+            probability: suggestion.probability ?? null,
+            details: suggestion.details || {},
+            url: suggestion.details?.url || null
+          }
+        : null;
+      state.entry.speciesId = suggestion?.id || 'mushroom-001';
+    }
+
+    function resetAnalysisState() {
+      state.analysis = { status: 'idle', error: '', suggestions: [], selectedIndex: -1, selectedSuggestion: null, warning: '' };
+      state.entry.selectedSuggestion = null;
+      state.entry.speciesId = 'mushroom-001';
+    }
+
+    function renderSelectedSuggestion() {
+      const suggestion = state.analysis.selectedSuggestion;
+      if (!suggestion) {
+        elements.selectedMatch.className = 'selected-card';
+        elements.selectedMatch.innerHTML = '';
+        return;
+      }
+
+      const taxonomy = suggestion.details?.taxonomy || {};
+      const probability = typeof suggestion.probability === 'number' ? `${Math.round(suggestion.probability * 100)}%` : '—';
+      const edibility = suggestion.details?.edibility?.value || suggestion.details?.edibility || 'Unknown';
+      const url = suggestion.details?.url;
+      elements.selectedMatch.className = 'selected-card active';
+      elements.selectedMatch.innerHTML = `
+        <div class="subtitle">Selected result</div>
+        <div style="font-weight:700; font-size:1.05rem;">${suggestion.name || 'Unknown'}</div>
+        <div class="muted">${getDisplayCommonNames(suggestion.details?.common_names)}</div>
+        <div class="kv"><strong style="color: var(--text);">Confidence</strong><span>${probability}</span></div>
+        <div class="kv"><strong style="color: var(--text);">Taxonomy</strong><span>${taxonomy.family || taxonomy.genus || taxonomy.order || 'Not provided'}</span></div>
+        <div class="kv"><strong style="color: var(--text);">Edibility</strong><span>${edibility}</span></div>
+        ${url ? `<div><a class="inline-link" href="${url}" target="_blank" rel="noreferrer">Open reference</a></div>` : ''}
+      `;
+    }
+
+    function getCurrentCoordinates() {
+      return new Promise((resolve) => {
+        if (!state.entry.locationEnabled || !navigator.geolocation) {
+          resolve({ latitude: null, longitude: null });
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+          () => resolve({ latitude: null, longitude: null }),
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+        );
+      });
+    }
+
     function renderCollections() {
       const collection = getSavedCollection();
       elements.collectionList.innerHTML = '';
@@ -629,7 +691,7 @@ AI USAGE DISCLOSURE:
         const card = document.createElement('div');
         card.className = 'collection-card';
         const title = entry.journalName || 'Untitled journal';
-        const topMushroom = entry.analysis?.suggestions?.[0]?.name || 'Unknown';
+        const topMushroom = entry.selectedSuggestion?.name || entry.analysis?.selectedSuggestion?.name || entry.analysis?.suggestions?.[0]?.name || 'Unknown';
         const photo = entry.photos?.[0];
         const imageHtml = photo?.dataUrl
           ? `<div class="collection-image" data-open="${entry.savedId}"><img src="${photo.dataUrl}" alt="${title}"></div>`
@@ -655,23 +717,28 @@ AI USAGE DISCLOSURE:
 
     function suggestionMarkup(suggestion, index) {
       const probability = typeof suggestion.probability === 'number' ? `${Math.round(suggestion.probability * 100)}%` : '—';
-      const commonNames = suggestion.details?.common_names;
       const taxonomy = suggestion.details?.taxonomy;
       const edibility = suggestion.details?.edibility?.value || suggestion.details?.edibility || 'Unknown';
       const imageUrl = suggestion.similar_images?.[0]?.url || suggestion.similar_images?.[0]?.url_small || '';
+      const selectedClass = state.analysis.selectedIndex === index ? 'primary' : '';
+      const referenceUrl = suggestion.details?.url || '';
 
       return `
         <div class="match">
           <div class="match-top">
             <div>
               <div class="match-name">${index + 1}. ${suggestion.name || 'Unknown'}</div>
-              <div class="muted">${commonNames?.en || commonNames?.[0] || 'No common names provided'}</div>
+              <div class="muted">${getDisplayCommonNames(suggestion.details?.common_names)}</div>
             </div>
             <div class="match-prob">${probability}</div>
           </div>
           <div class="kv"><strong style="color: var(--text);">Taxonomy</strong><span>${taxonomy?.family || taxonomy?.genus || taxonomy?.order || 'Not provided'}</span></div>
           <div class="kv"><strong style="color: var(--text);">Edibility</strong><span>${edibility}</span></div>
           <div class="kv"><strong style="color: var(--text);">Similar Images</strong><span>${suggestion.similar_images?.length || 0}</span></div>
+          <div class="match-actions">
+            <button class="${selectedClass}" data-select-match="${index}">${state.analysis.selectedIndex === index ? 'Selected' : 'Use this result'}</button>
+            ${referenceUrl ? `<a class="inline-link" href="${referenceUrl}" target="_blank" rel="noreferrer">Reference</a>` : ''}
+          </div>
           ${imageUrl ? `<div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; background: #101012;"><img src="${imageUrl}" alt="${suggestion.name || 'Mushroom match'}" style="width: 100%; height: 100%; object-fit: contain; display: block; background: #101012;"></div>` : ''}
         </div>
       `;
@@ -683,7 +750,7 @@ AI USAGE DISCLOSURE:
       if (!found) return;
       state.entry = JSON.parse(JSON.stringify({ journalName: 'My Mushroom Journal', ...found }));
       controller.entry = state.entry;
-      state.analysis = JSON.parse(JSON.stringify(found.analysis || { status: 'idle', error: '', suggestions: [] }));
+      state.analysis = JSON.parse(JSON.stringify(found.analysis || { status: 'idle', error: '', suggestions: [], selectedIndex: -1, selectedSuggestion: null, warning: '' }));
       render();
       renderAnalysis();
       setStatus(`Loaded ${state.entry.journalName || 'saved log'}.`);
@@ -696,43 +763,84 @@ AI USAGE DISCLOSURE:
 
     function renderAnalysis() {
       if (state.analysis.status === 'loading') {
-        elements.analysisState.textContent = 'Analyzing mushroom photos...';
+        elements.analysisState.textContent = 'Analyzing mushroom photos with Kindwise...';
+        elements.analysisBanner.className = 'banner';
+        elements.analysisBanner.textContent = '';
+        elements.selectedMatch.className = 'selected-card';
+        elements.selectedMatch.innerHTML = '';
         elements.matches.innerHTML = '';
         return;
       }
       if (state.analysis.status === 'error') {
         elements.analysisState.textContent = `Analysis failed: ${state.analysis.error}`;
+        elements.analysisBanner.className = 'banner';
+        elements.analysisBanner.textContent = '';
+        elements.selectedMatch.className = 'selected-card';
+        elements.selectedMatch.innerHTML = '';
         elements.matches.innerHTML = '';
         return;
       }
       if (state.analysis.suggestions.length === 0) {
         elements.analysisState.textContent = 'Upload a photo to run identification.';
+        elements.analysisBanner.className = 'banner';
+        elements.analysisBanner.textContent = '';
+        elements.selectedMatch.className = 'selected-card';
+        elements.selectedMatch.innerHTML = '';
         elements.matches.innerHTML = '';
         return;
       }
 
-      elements.analysisState.textContent = 'Top matches from the API:';
+      elements.analysisState.textContent = 'Top matches from the Kindwise mushroom.id API:';
+      if (state.analysis.warning) {
+        elements.analysisBanner.className = 'banner warning active';
+        elements.analysisBanner.textContent = state.analysis.warning;
+      } else {
+        elements.analysisBanner.className = 'banner';
+        elements.analysisBanner.textContent = '';
+      }
+
+      renderSelectedSuggestion();
       elements.matches.innerHTML = '';
       state.analysis.suggestions.slice(0, 3).forEach((suggestion, index) => {
         const wrapper = document.createElement('div');
         wrapper.innerHTML = suggestionMarkup(suggestion, index);
-        elements.matches.appendChild(wrapper.firstElementChild);
+        const matchElement = wrapper.firstElementChild;
+        const selectButton = matchElement.querySelector('[data-select-match]');
+        if (selectButton) {
+          selectButton.addEventListener('click', () => {
+            setSelectedSuggestion(index);
+            renderAnalysis();
+            setStatus(`Selected ${suggestion.name || 'match'} for this journal entry.`);
+          });
+        }
+        elements.matches.appendChild(matchElement);
       });
     }
 
-    function requestAnalysis() {
+    async function requestAnalysis() {
       const images = state.entry.photos.map((photo) => photo.dataUrl).filter(Boolean);
       if (images.length === 0) return;
 
       state.analysis.status = 'loading';
       state.analysis.error = '';
-      elements.analysisState.textContent = 'Analyzing mushroom photos...';
+      state.analysis.warning = '';
+      elements.analysisState.textContent = 'Analyzing mushroom photos with Kindwise...';
       elements.matches.innerHTML = '';
+
+      const coordinates = await getCurrentCoordinates();
+      state.entry.latitude = coordinates.latitude;
+      state.entry.longitude = coordinates.longitude;
 
       fetch('/api/mushroom/identify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images, datetime: state.entry.date, latitude: null, longitude: null, similar_images: true })
+        body: JSON.stringify({
+          images,
+          datetime: state.entry.date,
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
+          similar_images: true
+        })
       })
         .then(async (response) => {
           const data = await response.json();
@@ -744,14 +852,28 @@ AI USAGE DISCLOSURE:
           state.analysis.status = 'done';
           state.analysis.suggestions = suggestions.slice(0, 3);
           state.analysis.error = '';
-          state.entry.photos.forEach((photo) => { photo.analysisState = 'done'; photo.analysisLabel = 'Analyzed'; });
+          state.analysis.warning = '';
+          if (state.analysis.suggestions.length === 0) {
+            state.analysis.warning = 'No suggestions were returned. Try a clearer image or another angle.';
+            setSelectedSuggestion(-1);
+          } else {
+            setSelectedSuggestion(0);
+            const topProbability = Number(state.analysis.suggestions[0]?.probability || 0);
+            if (topProbability < LOW_CONFIDENCE_THRESHOLD) {
+              state.analysis.warning = 'The top result has low confidence. Treat this as a suggestion only and add more photos before relying on it.';
+            }
+          }
+          state.entry.photos.forEach((photo) => { photo.analysisState = 'done'; photo.analysisLabel = 'Analyzed by Kindwise'; });
           renderAnalysis();
-          setStatus(`Analyzed ${images.length} photo(s).`);
+          setStatus(`Analyzed ${images.length} photo(s) with Kindwise.`);
         })
         .catch((error) => {
           state.analysis.status = 'error';
           state.analysis.error = error.message;
           state.analysis.suggestions = [];
+          state.analysis.selectedIndex = -1;
+          state.analysis.selectedSuggestion = null;
+          state.analysis.warning = '';
           renderAnalysis();
           setStatus(error.message, 'error');
         });
@@ -763,7 +885,7 @@ AI USAGE DISCLOSURE:
       elements.locationField.value = state.entry.location;
       elements.notes.value = state.entry.notes;
       elements.locationToggle.checked = state.entry.locationEnabled;
-      elements.locationState.textContent = `Location: ${state.entry.locationEnabled ? (state.entry.location || "captured") : "not set"}`;
+      elements.locationState.textContent = `Location: ${state.entry.locationEnabled ? (state.entry.location || (state.entry.latitude && state.entry.longitude ? `${state.entry.latitude.toFixed(4)}, ${state.entry.longitude.toFixed(4)}` : 'capturing if allowed')) : 'not set'}`;
       elements.entryMeta.textContent = `${state.entry.journalName || 'Untitled journal'} · ${(state.entry.notes || state.entry.photos.length) ? "In progress" : "Draft"}`;
       elements.photoList.innerHTML = "";
 
@@ -801,7 +923,7 @@ AI USAGE DISCLOSURE:
           if (state.entry.photos.length) {
             requestAnalysis();
           } else {
-            state.analysis = { status: 'idle', error: '', suggestions: [] };
+            resetAnalysisState();
             renderAnalysis();
           }
           setStatus(`Removed ${photo.name}.`);
@@ -901,7 +1023,7 @@ AI USAGE DISCLOSURE:
       saveCollection(state.collection);
       state.entry.savedId = savedId;
       state.entry.savedAt = snapshot.savedAt;
-      setStatus("Log saved locally.");
+      setStatus(state.entry.selectedSuggestion ? `Log saved locally with ${state.entry.selectedSuggestion.name}.` : 'Log saved locally.');
       if (location.hash === '#collections') renderCollections();
     });
 
@@ -912,8 +1034,10 @@ AI USAGE DISCLOSURE:
       state.entry.notes = "";
       state.entry.photos = [];
       state.entry.locationEnabled = false;
+      state.entry.latitude = null;
+      state.entry.longitude = null;
       controller.history = [];
-      state.analysis = { status: 'idle', error: '', suggestions: [] };
+      resetAnalysisState();
       localStorage.removeItem(`draft-entry-${state.entry.id}`);
       render();
       setStatus("Entry cleared.");

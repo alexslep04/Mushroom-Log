@@ -5,19 +5,20 @@
 //
 // INITIAL AI PROMPT (ChatGPT):
 // "Create a Node.js HTTP server that serves static files and includes an API proxy
-// endpoint (/api/mushroom/identify) which reads a .env file for API credentials,
-// forwards image data to a mushroom identification API, and returns the response."
+//  endpoint (/api/mushroom/identify) which reads a .env file for API credentials,
+//  forwards image data to a mushroom identification API, and returns the response."
+//
+// Ben Wingfield added onto this file with the Kindwise API for machine learning mushroom identification
+// AI PROMPT (ChatGPT):
+// "https://github.com/flowerchecker/mushroom-id-examples
+//  Could we integrate this API into the current code [index.html, server.js] please?"
 //
 // The generated server includes:
 // - Basic static file serving using Node's http/fs/path modules
 // - Custom .env loader without external dependencies
 // - JSON request parsing utility
-// - API proxy endpoint for mushroom identification requests
+// - API proxy endpoint for mushroom identification requests to Kindwise and processing of what is returned
 //
-// =================================================================
-//
-// No major functional changes were made after generation, aside from minor
-// integration adjustments to match the frontend API format.
 // =================================================================
 
 const http = require('http');
@@ -25,7 +26,18 @@ const fs = require('fs');
 const path = require('path');
 
 const root = __dirname;
-const port = 8000;
+const port = Number(process.env.PORT || 8000);
+const DEFAULT_API_BASE_URL = 'https://mushroom.kindwise.com/api/v1/';
+const DEFAULT_DETAILS = [
+  'common_names',
+  'url',
+  'taxonomy',
+  'rank',
+  'characteristic',
+  'edibility',
+  'psychoactive',
+  'gbif_id'
+];
 
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -37,7 +49,9 @@ function loadEnvFile(filePath) {
     if (eq === -1) continue;
     const key = trimmed.slice(0, eq).trim();
     let value = trimmed.slice(eq + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
     if (!process.env[key]) process.env[key] = value;
   }
 }
@@ -80,10 +94,10 @@ function readBody(req) {
 }
 
 async function proxyIdentification(req, res) {
-  const baseUrl = process.env.MUSHROOM_API_BASE_URL;
+  const baseUrl = process.env.MUSHROOM_API_BASE_URL || DEFAULT_API_BASE_URL;
   const apiKey = process.env.MUSHROOM_API_KEY;
-  if (!baseUrl || !apiKey) {
-    sendJson(res, 500, { error: 'Missing MUSHROOM_API_BASE_URL or MUSHROOM_API_KEY in .env' });
+  if (!apiKey) {
+    sendJson(res, 500, { error: 'Missing MUSHROOM_API_KEY in .env' });
     return;
   }
 
@@ -102,7 +116,15 @@ async function proxyIdentification(req, res) {
   }
 
   const endpoint = new URL('identification', baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
-  endpoint.searchParams.set('details', 'common_names,gbif_id,taxonomy,rank,characteristic,edibility,psychoactive,url');
+  endpoint.searchParams.set('details', DEFAULT_DETAILS.join(','));
+
+  const upstreamPayload = {
+    images,
+    similar_images: payload.similar_images !== false,
+    datetime: payload.datetime || undefined,
+    latitude: typeof payload.latitude === 'number' ? payload.latitude : undefined,
+    longitude: typeof payload.longitude === 'number' ? payload.longitude : undefined
+  };
 
   const upstream = await fetch(endpoint, {
     method: 'POST',
@@ -110,16 +132,18 @@ async function proxyIdentification(req, res) {
       'Content-Type': 'application/json',
       'Api-Key': apiKey
     },
-    body: JSON.stringify({ images, latitude: payload.latitude, longitude: payload.longitude, similar_images: true, datetime: payload.datetime })
+    body: JSON.stringify(upstreamPayload)
   });
 
   const text = await upstream.text();
   if (!upstream.ok) {
-    sendJson(res, 502, { error: 'Mushroom API request failed', status: upstream.status, body: text });
+    sendJson(res, 502, { error: 'Kindwise mushroom.id request failed', status: upstream.status, body: text });
     return;
   }
 
-  res.writeHead(upstream.status, { 'Content-Type': upstream.headers.get('content-type') || 'application/json; charset=utf-8' });
+  res.writeHead(upstream.status, {
+    'Content-Type': upstream.headers.get('content-type') || 'application/json; charset=utf-8'
+  });
   res.end(text);
 }
 
@@ -142,4 +166,6 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': type });
     res.end(data);
   });
-}).listen(port, '127.0.0.1', () => console.log(`Server running at http://127.0.0.1:${port}`));
+}).listen(port, '127.0.0.1', () => {
+  console.log(`Server running at http://127.0.0.1:${port}`);
+});
