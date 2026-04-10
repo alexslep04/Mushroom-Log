@@ -474,6 +474,7 @@ AI USAGE DISCLOSURE:
         <button class="primary" id="saveBtn">Save Log</button>
         <button id="undoBtn">Undo</button>
         <button class="danger" id="resetBtn">Clear Entry</button>
+        <button id="exportBtn">Export Log</button>
       </div>
 
       <div class="status" id="status"></div>
@@ -527,6 +528,7 @@ AI USAGE DISCLOSURE:
       saveBtn: $("saveBtn"),
       undoBtn: $("undoBtn"),
       resetBtn: $("resetBtn"),
+      exportBtn: $("exportBtn")
       status: $("status"),
       entryMeta: $("entryMeta"),
       analysisState: $("analysisState"),
@@ -915,6 +917,31 @@ AI USAGE DISCLOSURE:
       localStorage.removeItem(`draft-entry-${state.entry.id}`);
       render();
       setStatus("Entry cleared.");
+    });
+
+    elements.exportBtn.addEventListener("click", () => {
+      if (!validator.validate(state.entry)) {
+        setStatus("Add notes or a photo before exporting.", "error");
+        return;
+      }
+      const lines = [
+        `Journal: ${state.entry.journalName}`,
+        `Date: ${state.entry.date}`,
+        `Location: ${state.entry.location || "Not set"}`,
+        `Notes: ${state.entry.notes}`,
+        `Photos: ${state.entry.photos.map((p) => p.name).join(", ") || "None"}`,
+        ``,
+        `Top Matches:`,
+        ...state.analysis.suggestions.slice(0, 3).map((s, i) =>
+          `${i + 1}. ${s.name} (${Math.round((s.probability || 0) * 100)}%)`
+        )
+      ];
+      const file = new File([lines.join("\n")], {type: "text/plain"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(file);
+      a.download = `${state.entry.journalName.replace(/\s+/g, "_") || "mushroom_log"}.txt`;
+      a.click();
+      setStatus("Log exported");
     });
 
     elements.collectionsBtn.addEventListener('click', () => navigateTo('collections'));
