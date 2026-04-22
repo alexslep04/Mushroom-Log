@@ -476,6 +476,7 @@ AI USAGE DISCLOSURE:
           <p>View logs you already saved.</p>
         </div>
         <div class="row">
+          <button class="primary" id="addNewEntryBtn">Add New Entry</button>
           <button id="backToLogBtn">Back to Log</button>
         </div>
       </div>
@@ -526,6 +527,7 @@ AI USAGE DISCLOSURE:
       selectedMatch: $("selectedMatch"),
       matches: $("matches"),
       collectionsBtn: $("collectionsBtn"),
+      addNewEntryBtn: $("addNewEntryBtn"),
       backToLogBtn: $("backToLogBtn"),
       logPage: $("logPage"),
       collectionsPage: $("collectionsPage"),
@@ -638,6 +640,25 @@ AI USAGE DISCLOSURE:
       state.analysis = { status: 'idle', error: '', suggestions: [], selectedIndex: -1, selectedSuggestion: null, warning: '' };
       state.entry.selectedSuggestion = null;
       state.entry.speciesId = 'mushroom-001';
+    }
+
+    function startNewEntry() {
+      state.entry.id = 42;
+      state.entry.savedId = undefined;
+      state.entry.savedAt = undefined;
+      state.entry.date = new Date().toISOString().slice(0, 10);
+      state.entry.journalName = 'My Mushroom Journal';
+      state.entry.location = '';
+      state.entry.notes = '';
+      state.entry.photos = [];
+      state.entry.locationEnabled = false;
+      state.entry.latitude = null;
+      state.entry.longitude = null;
+      state.entry.selectedSuggestion = null;
+      controller.history = [];
+      resetAnalysisState();
+      localStorage.removeItem(`draft-entry-${state.entry.id}`);
+      render();
     }
 
     function renderSelectedSuggestion() {
@@ -1028,18 +1049,7 @@ AI USAGE DISCLOSURE:
     });
 
     elements.resetBtn.addEventListener("click", () => {
-      state.entry.date = new Date().toISOString().slice(0, 10);
-      state.entry.journalName = 'My Mushroom Journal';
-      state.entry.location = "";
-      state.entry.notes = "";
-      state.entry.photos = [];
-      state.entry.locationEnabled = false;
-      state.entry.latitude = null;
-      state.entry.longitude = null;
-      controller.history = [];
-      resetAnalysisState();
-      localStorage.removeItem(`draft-entry-${state.entry.id}`);
-      render();
+      startNewEntry();
       setStatus("Entry cleared.");
     });
 
@@ -1069,6 +1079,11 @@ AI USAGE DISCLOSURE:
     });
 
     elements.collectionsBtn.addEventListener('click', () => navigateTo('collections'));
+    elements.addNewEntryBtn.addEventListener('click', () => {
+      startNewEntry();
+      navigateTo('log');
+      setStatus('New journal entry ready.');
+    });
     elements.backToLogBtn.addEventListener('click', () => navigateTo('log'));
     window.addEventListener('hashchange', renderPage);
 
