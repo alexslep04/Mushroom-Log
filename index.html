@@ -44,22 +44,21 @@ AI USAGE DISCLOSURE:
   <link rel="icon" href="data:,">
   <title>Mushroom Log</title>
   <style>
-
-  :root {
-  color-scheme: light;
-  --bg: #f5f0e8;
-  --panel: #2d4a1e;
-  --panel-2: #3a5c28;
-  --text: #1a1a1a;
-  --muted: #5c4a2a;
-  --border: #7a9c5a;
-  --soft: #e8dcc8;
-  --danger: #c0392b;
-  --accent: #4a7c2f;
-  --accent-soft: #e8f0e0;
-  --radius: 12px;
-  --shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
+    :root {
+      color-scheme: light;
+      --bg: #f5f0e8;
+      --panel: #2d4a1e;
+      --panel-2: #3a5c28;
+      --text: #1a1a1a;
+      --muted: #5c4a2a;
+      --border: #7a9c5a;
+      --soft: #e8dcc8;
+      --danger: #c0392b;
+      --accent: #4a7c2f;
+      --accent-soft: #e8f0e0;
+      --radius: 12px;
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
 
     * {
       box-sizing: border-box;
@@ -398,6 +397,31 @@ AI USAGE DISCLOSURE:
       margin-left: auto;
     }
 
+    .faq-list {
+      display: grid;
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .faq-item {
+      background: #ffffff;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .faq-question {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--panel);
+      margin-bottom: 8px;
+    }
+
+    .faq-answer {
+      color: #475569;
+      font-size: 0.97rem;
+      line-height: 1.6;
+    }
   </style>
 </head>
 
@@ -412,6 +436,7 @@ AI USAGE DISCLOSURE:
         </div>
         <div class="row">
           <button id="collectionsBtn">Collections</button>
+          <button id="helpBtn">Help</button>
         </div>
       </div>
     </header>
@@ -451,7 +476,8 @@ AI USAGE DISCLOSURE:
             <div id="analysisBanner" class="banner"></div>
             <div id="selectedMatch" class="selected-card"></div>
             <div id="matches" class="matches" style="margin-top: 12px;"></div>
-            <p class="muted" style="margin-top: 8px;">Configured for the Kindwise mushroom.id API through the local Node proxy. Keep your API key in .env only.</p>
+            <p class="muted" style="margin-top: 8px;">Configured for the Kindwise mushroom.id API through the local Node
+              proxy. Keep your API key in .env only.</p>
           </div>
         </section>
       </div>
@@ -485,6 +511,66 @@ AI USAGE DISCLOSURE:
         </div>
       </div>
       <div id="collectionList" class="collection-list"></div>
+    </section>
+
+    <section id="helpPage" class="page card">
+      <div class="row space-between">
+        <div>
+          <div class="subtitle">Documentation</div>
+          <h1 style="margin: 0 0 8px; font-size: 1.7rem;">Help & FAQ</h1>
+          <p>Everything you need to know about using Mushroom Log.</p>
+        </div>
+        <div class="row">
+          <button id="backToLogFromHelpBtn">Back to Log</button>
+        </div>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-question">How do I start a new journal entry?</div>
+          <div class="faq-answer">When you open the app a blank draft is ready for you. Fill in the journal name, date,
+            location, and observation notes. If you want to start fresh at any time, click the <strong>Clear
+              Entry</strong> button.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">How do I add photos?</div>
+          <div class="faq-answer">Click the <strong>Add Photo</strong> button on the right side of the log form. You can
+            select one or multiple images from your device. A preview will appear and the app will automatically send
+            them to the mushroom identification API.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">How does mushroom identification work?</div>
+          <div class="faq-answer">Once you upload a photo, the app sends it to the Kindwise mushroom.id API through a
+            local server proxy. The top 3 matches are shown with confidence percentages. You can click <strong>Use this
+              result</strong> to attach a match to your log entry.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">How do I save a log entry?</div>
+          <div class="faq-answer">Click the <strong>Save Log</strong> button at the bottom of the form. You must have at
+            least some notes or a photo before saving. Saved entries are stored in your browser's localStorage and can
+            be viewed on the Collections page.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">How do I view my saved entries?</div>
+          <div class="faq-answer">Click the <strong>Collections</strong> button in the top right corner. All your saved
+            logs will be listed there. Click on any entry image to load it back into the log form.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">What does the Undo button do?</div>
+          <div class="faq-answer">The <strong>Undo</strong> button reverses your last action, such as adding or removing
+            a photo or editing your notes. It only tracks actions within the current session.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">How do I export a log?</div>
+          <div class="faq-answer">Click the <strong>Export Log</strong> button to download a plain text file with your
+            journal name, date, location, notes, photo filenames, and top mushroom matches.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">How do I use my current location?</div>
+          <div class="faq-answer">Check the <strong>Use current location</strong> checkbox. Your browser will ask for
+            permission to access your location. If granted, your coordinates will be saved with the log entry.</div>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -538,7 +624,7 @@ AI USAGE DISCLOSURE:
       collectionList: $("collectionList")
     };
 
-    class Command { execute() {} undo() {} }
+    class Command { execute() { } undo() { } }
     class UpdateNotesCommand extends Command {
       constructor(entry, newNotes) { super(); this.entry = entry; this.newNotes = newNotes; this.oldNotes = entry.notes; }
       execute() { this.entry.notes = this.newNotes; }
@@ -599,14 +685,18 @@ AI USAGE DISCLOSURE:
     }
 
     function navigateTo(view) {
-      location.hash = view === 'collections' ? '#collections' : '#log';
+      if (view === 'collections') location.hash = '#collections';
+      else if (view === 'help') location.hash = '#help';
+      else location.hash = '#log';
       renderPage();
     }
 
     function renderPage() {
       const isCollections = location.hash === '#collections';
-      elements.logPage.classList.toggle('active', !isCollections);
+      const isHelp = location.hash === '#help';
+      elements.logPage.classList.toggle('active', !isCollections && !isHelp);
       elements.collectionsPage.classList.toggle('active', isCollections);
+      document.getElementById('helpPage').classList.toggle('active', isHelp);
       if (isCollections) renderCollections();
     }
 
@@ -630,12 +720,12 @@ AI USAGE DISCLOSURE:
       state.analysis.selectedSuggestion = suggestion;
       state.entry.selectedSuggestion = suggestion
         ? {
-            id: suggestion.id || null,
-            name: suggestion.name || 'Unknown',
-            probability: suggestion.probability ?? null,
-            details: suggestion.details || {},
-            url: suggestion.details?.url || null
-          }
+          id: suggestion.id || null,
+          name: suggestion.name || 'Unknown',
+          probability: suggestion.probability ?? null,
+          details: suggestion.details || {},
+          url: suggestion.details?.url || null
+        }
         : null;
       state.entry.speciesId = suggestion?.id || 'mushroom-001';
     }
@@ -1074,7 +1164,7 @@ AI USAGE DISCLOSURE:
           `${i + 1}. ${s.name} (${Math.round((s.probability || 0) * 100)}%)`
         )
       ];
-      const file = new File([lines.join("\n")], {type: "text/plain"});
+      const file = new File([lines.join("\n")], { type: "text/plain" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(file);
       a.download = `${state.entry.journalName.replace(/\s+/g, "_") || "mushroom_log"}.txt`;
@@ -1083,6 +1173,8 @@ AI USAGE DISCLOSURE:
     });
 
     elements.collectionsBtn.addEventListener('click', () => navigateTo('collections'));
+    document.getElementById('helpBtn').addEventListener('click', () => navigateTo('help'));
+    document.getElementById('backToLogFromHelpBtn').addEventListener('click', () => navigateTo('log'))
     elements.addNewEntryBtn.addEventListener('click', () => {
       startNewEntry();
       navigateTo('log');
