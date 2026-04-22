@@ -231,6 +231,117 @@ class TestPM4Functions(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("JS_ASSERTIONS_OK", result.stdout)
 
+    def test_integration_selection_then_new_entry_reset(self):
+        js = textwrap.dedent(
+            """
+            state.analysis.suggestions = [
+              { id: 'spec-1', name: 'Species One', probability: 0.9, details: { common_names: ['One'] } },
+              { id: 'spec-2', name: 'Species Two', probability: 0.4, details: { common_names: ['Two'] } }
+            ];
+
+            setSelectedSuggestion(1);
+            assert(state.entry.speciesId === 'spec-2', 'selection should update species id');
+            assert(state.entry.selectedSuggestion && state.entry.selectedSuggestion.name === 'Species Two', 'selection should update entry selectedSuggestion');
+
+            let renderCalls = 0;
+            const oldRender = render;
+            render = function () {{ renderCalls += 1; }};
+            startNewEntry();
+
+            assert(state.entry.speciesId === 'mushroom-001', 'new entry should reset species id');
+            assert(state.entry.selectedSuggestion === null, 'new entry should clear selected suggestion');
+            assert(state.analysis.selectedIndex === -1, 'analysis selected index should reset');
+            assert(state.analysis.suggestions.length === 0, 'analysis suggestions should reset');
+            assert(renderCalls === 1, 'integration should still render once');
+            render = oldRender;
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    # 5 Tests added by Sriya
+    # AI-ASSISTED TESTS (Course AI Policy)
+    #
+    # I identified three untouched functions in index.html getSavedCollection, Validator,
+    # and queuePhotoForAnalysis and used AI to help generate unit tests for them.
+    # Tests cover empty storage handling, data parsing, validation logic, and photo queuing behavior.
+    #
+    # Prompt used (AI):
+    # "Following the same test format, create 5 tests that test the untouched methods
+    # getSavedCollection, Validator, and queuePhotoForAnalysis implemented in index.html."
+
+    def test_getSavedCollection_empty_unit(self):
+        js = textwrap.dedent(
+            """
+            const result = getSavedCollection();
+            assert(Array.isArray(result), 'should return an array');
+            assert(result.length === 0, 'should return empty array when nothing is stored');
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
+
+    def test_getSavedCollection_with_data_unit(self):
+        js = textwrap.dedent(
+            """
+            localStorage.setItem('mushroom-log-collection', JSON.stringify([{ savedId: 'test-1', journalName: 'Forest Walk' }]));
+            const result = getSavedCollection();
+            assert(result.length === 1, 'should return one entry');
+            assert(result[0].savedId === 'test-1', 'should parse savedId correctly');
+            assert(result[0].journalName === 'Forest Walk', 'should parse journalName correctly');
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
+
+    def test_validator_rejects_empty_entry_unit(self):
+        js = textwrap.dedent(
+            """
+            const v = new Validator();
+            assert(v.validate({ notes: '', photos: [] }) === false, 'empty notes and no photos should fail validation');
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
+
+    def test_validator_accepts_valid_entry_unit(self):
+        js = textwrap.dedent(
+            """
+            const v = new Validator();
+            assert(v.validate({ notes: 'Found near oak tree', photos: [] }) === true, 'entry with notes should pass validation');
+            assert(v.validate({ notes: '', photos: [{ id: '1' }] }) === true, 'entry with a photo but no notes should also pass');
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
+
+    def test_queuePhoto_sets_queued_state_unit(self):
+        js = textwrap.dedent(
+            """
+            const photo = { id: 'p1', name: 'mushroom.jpg' };
+            queuePhotoForAnalysis(photo);
+            assert(photo.analysisState === 'queued', 'analysisState should be set to queued');
+            assert(photo.analysisLabel === 'Queued for identification', 'analysisLabel should be set correctly');
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
