@@ -2,3 +2,4 @@ black-box-test-plan.md
 PROCESS_DELIVERABLE_IV.md
 .env
 .env.local
+__pycache__
