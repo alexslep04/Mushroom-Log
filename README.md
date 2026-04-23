@@ -1,6 +1,7 @@
 # Mushroom Log
 
-**team 8 group group** — Aniya Frye, Christopher Ryan, Alex Sleptsov, Benjamin Wingfield, Khushi Patel, Sriya Botlaguduru
+**team 8 group group**:
+Aniya Frye, Christopher Ryan, Alex Sleptsov, Benjamin Wingfield, Khushi Patel, Sriya Botlaguduru
 
 A web application for identifying and logging wild mushroom finds. Upload a photo, get AI-powered species suggestions with confidence scores, toxicity info, and taxonomy details, then save everything to a personal collection for future reference.
 
