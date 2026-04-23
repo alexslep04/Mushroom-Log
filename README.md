@@ -8,8 +8,9 @@ A web application for identifying and logging wild mushroom finds. Upload a phot
 
 - **Photo-based identification** — Upload mushroom photos and receive the top 3 species candidates via the Kindwise mushroom.id API, each with a confidence probability, edibility rating, and taxonomic breakdown.
 - **Safety disclaimers** — Clear warnings accompany all identification results to discourage risky consumption based solely on automated predictions.
-- **Personal log** — Record the date, location, notes, and photos for each find. Entries are saved to browser localStorage and can be revisited from the Collections page.
-- **Export** — Download any log entry as a `.txt` file.
+- **Personal log** — Record the date, location note, coordinates, notes, and photos for each find. Entries are saved to browser localStorage and can be revisited from the Collections page.
+- **Current-location capture** — Enable **Use current location** to request browser geolocation, save latitude/longitude with the entry, send coordinates to the Kindwise identification request, and refresh coordinates on demand.
+- **Export** — Download any log entry as a `.txt` file, including saved coordinates and location status.
 - **Undo support** — The last action (adding/removing a photo, editing notes, toggling location) can be undone.
 
 ## Getting Started
@@ -18,6 +19,7 @@ A web application for identifying and logging wild mushroom finds. Upload a phot
 
 - [Node.js](https://nodejs.org/) (v18+ recommended)
 - A Kindwise mushroom.id API key — sign up at [kindwise.com](https://www.kindwise.com/)
+- A browser that supports the Geolocation API if you want to capture device coordinates
 
 ### Setup
 
@@ -33,6 +35,13 @@ A web application for identifying and logging wild mushroom finds. Upload a phot
 4. Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
 
 The server proxies identification requests to the Kindwise API so that your API key is never exposed to the browser.
+
+## Location Capture Notes
+
+- Turn on **Use current location** to prompt for location permission.
+- If permission is granted, the app stores latitude and longitude in the current journal entry.
+- If permission is denied or the request times out, the app keeps working and still allows a manual location note.
+- Use **Refresh Location** to request an updated coordinate reading before saving or analyzing a photo.
 
 ## Running Tests
 
