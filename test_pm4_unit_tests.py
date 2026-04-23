@@ -342,6 +342,61 @@ class TestPM4Functions(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("JS_ASSERTIONS_OK", result.stdout)
 
+    # Tests added by Khushi
+    # AI-ASSISTED TESTS (Course AI Policy)
+    #
+    # Prompt used (AI):
+    # "Following the same test format used in this file, create tests for
+    # AddPhotoCommand, RemovePhotoCommand, and UpdateNotesCommand implemented in index.html."
+
+    def test_addPhotoCommand_execute_and_undo_unit(self):
+        js = textwrap.dedent(
+            """
+            const entry = { photos: [] };
+            const photo = { id: 'photo-1', name: 'test.jpg' };
+            const cmd = new AddPhotoCommand(entry, photo);
+            cmd.execute();
+            assert(entry.photos.length === 1, 'photo should be added after execute');
+            assert(entry.photos[0].id === 'photo-1', 'added photo should have correct id');
+            cmd.undo();
+            assert(entry.photos.length === 0, 'photo should be removed after undo');
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
+
+    def test_removePhotoCommand_execute_and_undo_unit(self):
+        js = textwrap.dedent(
+            """
+            const photo = { id: 'photo-2', name: 'mushroom.jpg' };
+            const entry = { photos: [photo] };
+            const cmd = new RemovePhotoCommand(entry, photo);
+            cmd.execute();
+            assert(entry.photos.length === 0, 'photo should be removed after execute');
+            cmd.undo();
+            assert(entry.photos.length === 1, 'photo should be restored after undo');
+            assert(entry.photos[0].id === 'photo-2', 'restored photo should have correct id');
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
+
+    def test_updateNotesCommand_execute_and_undo_unit(self):
+        js = textwrap.dedent(
+            """
+            const entry = { notes: 'original note' };
+            const cmd = new UpdateNotesCommand(entry, 'updated note');
+            cmd.execute();
+            assert(entry.notes === 'updated note', 'notes should update after execute');
+            cmd.undo();
+            assert(entry.notes === 'original note', 'notes should revert after undo');
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
