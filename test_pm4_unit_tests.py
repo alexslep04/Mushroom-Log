@@ -259,15 +259,6 @@ class TestPM4Functions(unittest.TestCase):
         result = run_js_assertions(js)
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("JS_ASSERTIONS_OK", result.stdout)
-
-    
-    
-    
-    
-    
-    
-    
-    
     
     # 5 Tests added by Sriya
     # AI-ASSISTED TESTS (Course AI Policy)
@@ -392,6 +383,84 @@ class TestPM4Functions(unittest.TestCase):
             assert(entry.notes === 'updated note', 'notes should update after execute');
             cmd.undo();
             assert(entry.notes === 'original note', 'notes should revert after undo');
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
+    
+    # Tests added by Christopher
+    # AI-ASSISTED TESTS (Course AI Policy)
+    #
+    # Prompt used (AI):
+    # "Help create tests that target
+    # ToggleLocationCommand and EntryEditorController implemented in index.html, including an integration test that runs 
+    # multiple commands through the controller and checks repository persistence."
+ 
+    def test_toggleLocationCommand_execute_and_undo_unit(self):
+        """ToggleLocationCommand should flip locationEnabled on execute and restore on undo."""
+        js = textwrap.dedent(
+            """
+            const entry = { locationEnabled: false };
+            const cmd = new ToggleLocationCommand(entry);
+            cmd.execute();
+            assert(entry.locationEnabled === true, 'locationEnabled should flip to true after execute');
+            cmd.undo();
+            assert(entry.locationEnabled === false, 'locationEnabled should revert to false after undo');
+ 
+            const entry2 = { locationEnabled: true };
+            const cmd2 = new ToggleLocationCommand(entry2);
+            cmd2.execute();
+            assert(entry2.locationEnabled === false, 'locationEnabled should flip to false when initially true');
+            cmd2.undo();
+            assert(entry2.locationEnabled === true, 'locationEnabled should revert to true after undo');
+            """
+        )
+        result = run_js_assertions(js)
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("JS_ASSERTIONS_OK", result.stdout)
+ 
+    def test_integration_controller_commands_and_repository_roundtrip(self):
+        """EntryEditorController should run and undo commands; JournalRepository should persist and retrieve entries."""
+        js = textwrap.dedent(
+            """
+            const entry = { id: 'int-test-99', notes: '', photos: [], locationEnabled: false };
+            const ctrl = new EntryEditorController(entry);
+            const repo = new JournalRepository();
+ 
+            // Run an UpdateNotesCommand through the controller
+            ctrl.runCommand(new UpdateNotesCommand(entry, 'Found near stream'));
+            assert(entry.notes === 'Found near stream', 'notes should update via controller');
+ 
+            // Run a ToggleLocationCommand through the controller
+            ctrl.runCommand(new ToggleLocationCommand(entry));
+            assert(entry.locationEnabled === true, 'location should toggle on via controller');
+ 
+            // Run an AddPhotoCommand through the controller
+            const photo = { id: 'p-int-1', name: 'cap.jpg' };
+            ctrl.runCommand(new AddPhotoCommand(entry, photo));
+            assert(entry.photos.length === 1, 'photo should be added via controller');
+ 
+            // Save to repository and reload
+            repo.save(entry);
+            const loaded = repo.getById('int-test-99');
+            assert(loaded !== null, 'repository should return saved entry');
+            assert(loaded.notes === 'Found near stream', 'loaded notes should match');
+            assert(loaded.locationEnabled === true, 'loaded locationEnabled should match');
+            assert(loaded.photos.length === 1, 'loaded photos should match');
+            assert(loaded.photos[0].id === 'p-int-1', 'loaded photo id should match');
+ 
+            // Undo all three commands in reverse order
+            ctrl.undoLast();
+            assert(entry.photos.length === 0, 'photo should be removed after undo');
+            ctrl.undoLast();
+            assert(entry.locationEnabled === false, 'location should revert after undo');
+            ctrl.undoLast();
+            assert(entry.notes === '', 'notes should revert to empty after undo');
+ 
+            // Undo on empty history should be harmless
+            ctrl.undoLast();
+            assert(entry.notes === '', 'extra undo on empty history should be no-op');
             """
         )
         result = run_js_assertions(js)
