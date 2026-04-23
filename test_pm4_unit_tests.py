@@ -393,9 +393,9 @@ class TestPM4Functions(unittest.TestCase):
     # AI-ASSISTED TESTS (Course AI Policy)
     #
     # Prompt used (AI):
-    # "Help create tests that target
-    # ToggleLocationCommand and EntryEditorController implemented in index.html, including an integration test that runs 
-    # multiple commands through the controller and checks repository persistence."
+    # Help create tests that target ToggleLocationCommand and EntryEditorController
+    # implemented in index.html, including an integration test that runs multiple commands
+    # through the controller and checks repository persistence.
  
     def test_toggleLocationCommand_execute_and_undo_unit(self):
         """ToggleLocationCommand should flip locationEnabled on execute and restore on undo."""
